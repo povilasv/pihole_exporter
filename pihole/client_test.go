@@ -15,11 +15,12 @@
 package pihole
 
 import (
-	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/prometheus/common/log"
 )
 
 type piholeserver struct {
@@ -36,15 +37,15 @@ func handler(server *piholeserver, uri string, filename string) http.HandlerFunc
 	}
 }
 
-func newPiholeServer(uri string, filename string) *piholeserver {
+func newPiholeServer(uri, filename string) *piholeserver {
 	h := &piholeserver{}
 	h.Server = httptest.NewServer(handler(h, uri, filename))
 	return h
 }
 
-func getClientAndServer(t *testing.T, uri string, username string, password string, filename string) (*piholeserver, *Client) {
+func getClientAndServer(t *testing.T, uri, filename string) (*piholeserver, *Client) {
 	h := newPiholeServer(uri, filename)
-	client, err := NewClient(h.URL) //h.Listener.Addr().String()) // h.URL, username, password)
+	client, err := NewClient(h.URL)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -52,15 +53,16 @@ func getClientAndServer(t *testing.T, uri string, username string, password stri
 }
 
 func TestPiholeGetMetrics(t *testing.T) {
-	server, client := getClientAndServer(t, "", "", "", "stats.json")
+	server, client := getClientAndServer(t, "", "testdata/stats.json")
 	defer server.Close()
 	metrics, err := client.GetMetrics()
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	log.Infof("Metrics response: %s", metrics)
-	if metrics.DomainsBeingBlocked != "101934" ||
-		metrics.DNSQueriesToday != "2593" {
+	if metrics.DomainsBeingBlocked != 122074 ||
+		metrics.DNSQueriesToday != 5817 {
+
 		log.Fatalf("Invalid metrics response: %s", metrics)
 	}
 }

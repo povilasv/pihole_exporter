@@ -33,7 +33,7 @@ GOX = gox -os="linux darwin windows freebsd openbsd netbsd"
 GOX_ARGS = "-output={{.Dir}}-$(VERSION)_{{.OS}}_{{.Arch}}"
 
 BINTRAY_URI = https://api.bintray.com
-BINTRAY_USERNAME = nlamirault
+BINTRAY_USERNAME = povilasv
 BINTRAY_REPOSITORY= oss
 
 NO_COLOR=\033[0m
@@ -43,7 +43,7 @@ WARN_COLOR=\033[33;01m
 
 MAKE_COLOR=\033[33;01m%-20s\033[0m
 
-MAIN = github.com/nlamirault/pihole_exporter
+MAIN = github.com/povilasv/pihole_exporter
 SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
 PKGS = $(shell glide novendor)
 EXE = $(shell ls pihole_exporter-${VERSION}_*)
@@ -101,7 +101,7 @@ coverage: ## Launch code coverage
 
 gox: ## Make all binaries
 	@echo -e "$(OK_COLOR)[$(APP)] Create binaries $(NO_COLOR)"
-	$(GOX) $(GOX_ARGS) github.com/nlamirault/pihole_exporter
+	$(GOX) $(GOX_ARGS) github.com/povilasv/pihole_exporter
 
 .PHONY: binaries
 binaries: ## Upload all binaries

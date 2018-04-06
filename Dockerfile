@@ -1,6 +1,6 @@
 FROM golang:alpine AS build
 RUN apk add --no-cache alpine-sdk bash
-WORKDIR /go/src/github.com/nlamirault/pihole_exporter
+WORKDIR /go/src/github.com/povilasv/pihole_exporter
 COPY . .
 RUN go build -o /app/pihole_exporter pihole_exporter.go && chmod +x /app/pihole_exporter
 

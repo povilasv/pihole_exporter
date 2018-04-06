@@ -15,30 +15,24 @@
 package pihole
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/prometheus/common/log"
-	"io/ioutil"
 	"net/http"
 	"net/url"
-
-	"github.com/nlamirault/pihole_exporter/version"
 )
 
 const (
 	acceptHeader = "application/json"
 	mediaType    = "application/json"
+	Version      = "0.3.3"
 )
 
 var (
-	userAgent = fmt.Sprintf("pihole-exporter/%s", version.Version)
+	userAgent = fmt.Sprintf("pihole-exporter/%s", Version)
 )
 
 type Client struct {
 	Endpoint string
-	// Username string
-	// Password string
 }
 
 func NewClient(endpoint string) (*Client, error) {
@@ -46,33 +40,29 @@ func NewClient(endpoint string) (*Client, error) {
 	if err != nil || url.Scheme != "http" {
 		return nil, fmt.Errorf("Invalid PiHole address: %s", err)
 	}
-	log.Debugf("PiHole client creation")
 	return &Client{
 		Endpoint: url.String(),
-		// Username: username,
-		// Password: password,
 	}, nil
 }
 
 func (c *Client) setupHeaders(request *http.Request) {
-	request.Header.Add("Content-Type", mediaType)
-	request.Header.Add("Accept", acceptHeader)
-	request.Header.Add("User-Agent", userAgent)
-	// request.SetBasicAuth(c.Username, c.Password)
 }
 
 func (client *Client) GetMetrics() (*Metrics, error) {
-	log.Infof("Get metrics")
-	resp, err := http.Get(fmt.Sprintf("%s/admin/api.php?summaryRaw&overTimeData&topItems&recentItems&getQueryTypes&getForwardDestinations&getQuerySources", client.Endpoint))
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/admin/api.php?summaryRaw&overTimeData&topItems&recentItems&getQueryTypes&getForwardDestinations&getQuerySources", client.Endpoint), nil)
+
+	req.Header.Add("Content-Type", mediaType)
+	req.Header.Add("Accept", acceptHeader)
+	req.Header.Add("User-Agent", userAgent)
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	log.Debugf("Metrics response: %s", body)
+
 	var metrics Metrics
-	dec := json.NewDecoder(bytes.NewBuffer(body))
-	if err := dec.Decode(&metrics); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&metrics); err != nil {
 		return nil, err
 	}
 	return &metrics, nil

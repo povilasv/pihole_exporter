@@ -17,42 +17,20 @@
 
 package pihole
 
-import "encoding/json"
-
-type DomainsOverTime struct {
-	Stats map[string]string
-}
-
-type AdsOverTime struct {
-	Stats map[string]string
-}
-
-// type TopQueries struct {
-// 	Stats map[string]string
-// }
-
-// type TopAds struct {
-// 	Stats map[string]string
-// }
-
-// type TopSources struct {
-// 	Stats map[string]string
-// }
-
 type Metrics struct {
-	DomainsBeingBlocked json.Number       `json:"domains_being_blocked"`
-	DNSQueriesToday     json.Number       `json:"dns_queries_today"`
-	AdsBlockedToday     json.Number       `json:"ads_blocked_today"`
-	AdsPercentageToday  json.Number       `json:"ads_percentage_today"`
-	DomainsOverTime     DomainsOverTime   `json:"domains_over_time"`
-	AdsOverTime         AdsOverTime       `json:"ads_over_time"`
-	TopQueries          map[string]string `json:"top_queries"`
-	TopAds              map[string]string `json:"top_ads"`
-	TopSources          map[string]string `json:"top_sources"`
-	QueryA              string            `json:"query[A]"`
-	QueryAAAA           string            `json:"query[AAAA]"`
-	QueryPTR            string            `json:"query[PTR]"`
-	QuerySOA            string            `json:"query[SOA]"`
-	Eight844            string            `json:"8.8.4.4"`
-	Eight888            string            `json:"8.8.8.8"`
+	DomainsBeingBlocked int                `json:"domains_being_blocked"`
+	DNSQueriesToday     int                `json:"dns_queries_today"`
+	AdsBlockedToday     int                `json:"ads_blocked_today"`
+	AdsPercentageToday  float64            `json:"ads_percentage_today"`
+	UniqueDomains       int                `json:"unique_domains"`
+	QueriesForwarded    int                `json:"queries_forwarded"`
+	QueriesCached       int                `json:"queries_cached"`
+	ClientsEverSeen     int                `json:"clients_ever_seen"`
+	UniqueClients       int                `json:"unique_clients"`
+	Status              string             `json:"status"`
+	TopQueries          map[string]int     `json:"top_queries"`
+	TopAds              map[string]int     `json:"top_ads"`
+	TopSources          map[string]int     `json:"top_sources"`
+	ForwardDestinations map[string]float64 `json:"forward_destinations"`
+	Querytypes          map[string]float64 `json:"querytypes"`
 }

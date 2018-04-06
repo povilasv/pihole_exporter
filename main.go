@@ -21,29 +21,24 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/povilasv/pihole_exporter/pihole"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
-
-	"github.com/nlamirault/pihole_exporter/pihole"
-	exporter_version "github.com/nlamirault/pihole_exporter/version"
 )
 
 const (
-	banner = "pihole_exporter - %s\n"
-
+	banner    = "pihole_exporter - %s\n"
 	namespace = "pihole"
 )
 
 var (
-	debug         bool
-	version       bool
-	listenAddress string
-	metricsPath   string
-	endpoint      string
-	username      string
-	password      string
-	ids           string
-
+	debug               bool
+	version             bool
+	listenAddress       string
+	metricsPath         string
+	endpoint            string
+	logLevel            string
+	logFormat           string
 	domainsBeingBlocked = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "domains_being_blocked"),
 		"Domains being blocked.",
@@ -137,50 +132,73 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 // Collect the stats from channel and delivers them as Prometheus metrics.
 // It implements prometheus.Collector.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
-	log.Infof("Pihole exporter starting")
 	resp, err := e.Pihole.GetMetrics()
 	if err != nil {
 		log.Errorf("Pihole error: %s", err.Error())
 		return
 	}
-	log.Infof("PiHole metrics: %#v", resp)
-	storeMetric(ch, resp.DomainsBeingBlocked.String(), domainsBeingBlocked)
-	storeMetric(ch, resp.DNSQueriesToday.String(), dnsQueries)
-	storeMetric(ch, resp.AdsBlockedToday.String(), adsBlocked)
-	storeMetric(ch, resp.AdsPercentageToday.String(), adsPercentage)
-	storeMetric(ch, resp.QueryA, queryTypes, "A")
-	storeMetric(ch, resp.QueryAAAA, queryTypes, "AAAA")
-	storeMetric(ch, resp.QueryPTR, queryTypes, "PTR")
-	storeMetric(ch, resp.QuerySOA, queryTypes, "SOA")
-	for domain, hits := range resp.TopQueries {
-		storeMetric(ch, hits, topQueries, domain)
-	}
-	for domain, hits := range resp.TopAds {
-		storeMetric(ch, hits, topAds, domain)
-	}
-	for client, requests := range resp.TopSources {
-		storeMetric(ch, requests, topSources, client)
-	}
+	log.Debugf("PiHole metrics: %#v", resp)
+	ch <- prometheus.MustNewConstMetric(
+		domainsBeingBlocked, prometheus.CounterValue, float64(resp.DomainsBeingBlocked))
 
-	log.Infof("Pihole exporter finished")
+	ch <- prometheus.MustNewConstMetric(
+		dnsQueries, prometheus.CounterValue, float64(resp.DNSQueriesToday))
+
+	ch <- prometheus.MustNewConstMetric(
+		adsBlocked, prometheus.CounterValue, float64(resp.AdsBlockedToday))
+
+	ch <- prometheus.MustNewConstMetric(
+		adsPercentage, prometheus.CounterValue, float64(resp.AdsPercentageToday))
+
+	for k, v := range resp.Querytypes {
+		ch <- prometheus.MustNewConstMetric(
+			queryTypes, prometheus.CounterValue, v, k)
+	}
+	for k, v := range resp.TopQueries {
+		ch <- prometheus.MustNewConstMetric(
+			topQueries, prometheus.CounterValue, float64(v), k)
+	}
+	for k, v := range resp.TopAds {
+		ch <- prometheus.MustNewConstMetric(
+			topAds, prometheus.CounterValue, float64(v), k)
+
+	}
+	for k, v := range resp.TopSources {
+		ch <- prometheus.MustNewConstMetric(
+			topSources, prometheus.CounterValue, float64(v), k)
+	}
 }
 
 func init() {
-	// parse flags
 	flag.BoolVar(&version, "version", false, "print version and exit")
 	flag.StringVar(&listenAddress, "web.listen-address", ":9311", "Address to listen on for web interface and telemetry.")
 	flag.StringVar(&metricsPath, "web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 	flag.StringVar(&endpoint, "pihole", "", "Endpoint of Pihole")
+	flag.StringVar(&logLevel, "log.level", "info", "Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]")
+	flag.StringVar(&logFormat, "log.format", "logger:stderr", `Set the log target and format. Example: "logger:syslog?appname=bob&local=7" or "logger:stdout?json=true"`)
 	flag.Usage = func() {
-		fmt.Fprint(os.Stderr, fmt.Sprintf(banner, exporter_version.Version))
+		fmt.Fprint(os.Stderr, fmt.Sprintf(banner, version))
 		flag.PrintDefaults()
 	}
 
 	flag.Parse()
 
 	if version {
-		fmt.Printf("%s", exporter_version.Version)
+		fmt.Printf("%s", pihole.Version)
 		os.Exit(0)
+	}
+	if logLevel != "" {
+		if err := log.Base().SetLevel(logLevel); err != nil {
+			log.Errorf("Failed to set log level: %s", err.Error())
+			os.Exit(1)
+		}
+
+	}
+	if logFormat != "" {
+		if err := log.Base().SetFormat(logFormat); err != nil {
+			log.Errorf("Failed to set log format: %s", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	if len(endpoint) == 0 {
@@ -228,5 +246,4 @@ func storeMetric(ch chan<- prometheus.Metric, value string, desc *prometheus.Des
 	} else {
 		log.Errorf("Can't store metric %s into %s: %s", value, desc, err.Error())
 	}
-
 }
