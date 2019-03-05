@@ -33,15 +33,17 @@ var (
 
 type Client struct {
 	Endpoint string
+	Auth		 string
 }
 
-func NewClient(endpoint string) (*Client, error) {
+func NewClient(endpoint string, auth string) (*Client, error) {
 	url, err := url.Parse(endpoint)
 	if err != nil || url.Scheme != "http" {
 		return nil, fmt.Errorf("Invalid PiHole address: %s", err)
 	}
 	return &Client{
 		Endpoint: url.String(),
+		Auth: auth,
 	}, nil
 }
 
@@ -49,7 +51,7 @@ func (c *Client) setupHeaders(request *http.Request) {
 }
 
 func (client *Client) GetMetrics() (*Metrics, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/admin/api.php?summaryRaw&overTimeData&topItems&recentItems&getQueryTypes&getForwardDestinations&getQuerySources", client.Endpoint), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/admin/api.php?summaryRaw&overTimeData&topItems&recentItems&getQueryTypes&getForwardDestinations&getQuerySources&auth=%s", client.Endpoint, client.Auth), nil)
 
 	req.Header.Add("Content-Type", mediaType)
 	req.Header.Add("Accept", acceptHeader)
