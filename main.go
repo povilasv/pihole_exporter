@@ -37,6 +37,7 @@ var (
 	listenAddress       string
 	metricsPath         string
 	endpoint            string
+	auth                string
 	logLevel            string
 	logFormat           string
 	domainsBeingBlocked = prometheus.NewDesc(
@@ -104,8 +105,8 @@ type Exporter struct {
 
 // NewExporter returns an initialized Exporter.
 func NewExporter(endpoint string) (*Exporter, error) {
-	log.Infoln("Setup Pihole exporter using URL: %s", endpoint)
-	pihole, err := pihole.NewClient(endpoint)
+	log.Infof("Setup Pihole exporter using URL: %s", endpoint)
+	pihole, err := pihole.NewClient(endpoint, auth)
 	if err != nil {
 		return nil, err
 	}
@@ -174,10 +175,11 @@ func init() {
 	flag.StringVar(&listenAddress, "web.listen-address", ":9311", "Address to listen on for web interface and telemetry.")
 	flag.StringVar(&metricsPath, "web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 	flag.StringVar(&endpoint, "pihole", "", "Endpoint of Pihole")
+	flag.StringVar(&auth, "auth", "", "Auth token for pihole")
 	flag.StringVar(&logLevel, "log.level", "info", "Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]")
 	flag.StringVar(&logFormat, "log.format", "logger:stderr", `Set the log target and format. Example: "logger:syslog?appname=bob&local=7" or "logger:stdout?json=true"`)
 	flag.Usage = func() {
-		fmt.Fprint(os.Stderr, fmt.Sprintf(banner, version))
+		fmt.Fprint(os.Stderr, fmt.Sprintf(banner, pihole.Version))
 		flag.PrintDefaults()
 	}
 
@@ -226,7 +228,7 @@ func main() {
              </html>`))
 	})
 
-	log.Infoln("Listening on", listenAddress)
+	log.Infof("Listening on %s", listenAddress)
 	log.Fatal(http.ListenAndServe(listenAddress, nil))
 }
 
